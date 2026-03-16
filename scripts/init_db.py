@@ -10,23 +10,42 @@ from app.models import Segment, User
 
 
 DEFAULT_SEGMENTS = [
-    "Logistica",
+    "Logística",
     "Lajes Corporativas",
     "Shoppings",
     "CRI",
     "Residencial",
-    "Hibrido",
-    "Fundo de Fundos",
+    "Híbrido",
+    "FOF",
     "Renda Urbana",
     "Outros",
 ]
 
+SEGMENT_RENAMES = {
+    "Logistica": "Logística",
+    "Hibrido": "Híbrido",
+    "Fundo de Fundos": "FOF",
+}
 
-def seed_segments():
-    existing = {s.name for s in Segment.query.all()}
+
+def normalize_segments():
+    """Garante que os nomes de segmentos estejam atualizados."""
+    existing_by_name = {s.name: s for s in Segment.query.all()}
+
+    # Renomear antigos
+    for old, new in SEGMENT_RENAMES.items():
+        seg = existing_by_name.get(old)
+        if seg:
+            seg.name = new
+
+    db.session.flush()
+
+    # Garantir todos os segmentos padrão
+    existing_names = {s.name for s in Segment.query.all()}
     for name in DEFAULT_SEGMENTS:
-        if name not in existing:
+        if name not in existing_names:
             db.session.add(Segment(name=name))
+
     db.session.commit()
 
 
@@ -47,6 +66,23 @@ def seed_admin_user():
     print("Usuario admin criado.")
 
 
+def seed_default_analysts():
+    """Cria os analistas padrao, usados apenas para selecao na tela."""
+    default_analysts = [
+        ("pedro@cofii.local", "Pedro"),
+        ("ricardo@cofii.local", "Ricardo"),
+        ("enzo@cofii.local", "Enzo"),
+        ("reinaldo@cofii.local", "Reinaldo"),
+    ]
+    for email, name in default_analysts:
+        if not User.query.filter_by(email=email).first():
+            user = User(email=email, name=name)
+            # Senha dummy, pois login esta desativado
+            user.set_password("changeme")
+            db.session.add(user)
+    db.session.commit()
+
+
 def main():
     import sys
     try:
@@ -56,8 +92,10 @@ def main():
                 print("Criando tabelas...")
                 db.create_all()
                 print("Tabelas criadas com sucesso.")
-                seed_segments()
-                print("Segmentos inicializados.")
+                normalize_segments()
+                print("Segmentos normalizados.")
+                seed_default_analysts()
+                print("Analistas padrao criados (se necessario).")
                 seed_admin_user()
                 print("Inicializacao concluida.")
             except Exception as e:
