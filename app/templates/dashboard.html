@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Dashboard</h1>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <section class="grid">
     <div class="card">
@@ -55,6 +56,9 @@
             <li>{{ name }}: {{ weight }}%</li>
             {% endfor %}
         </ul>
+        <div class="chart-card">
+            <canvas id="allocationChart"></canvas>
+        </div>
     {% else %}
         <p>Sem alocacoes registradas ainda.</p>
     {% endif %}
@@ -82,3 +86,33 @@
     </form>
 </section>
 {% endblock %}
+
+{% if current_date %}
+<script>
+    const allocationLabels = {{ current_alloc.keys()|list|tojson }};
+    const allocationValues = {{ current_alloc.values()|list|tojson }};
+    const ctx = document.getElementById("allocationChart");
+    if (ctx) {
+        new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: allocationLabels,
+                datasets: [{
+                    label: "Alocacao por segmento (%)",
+                    data: allocationValues,
+                    backgroundColor: "#2e6bff"
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endif %}

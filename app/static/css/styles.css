@@ -44,6 +44,10 @@ body {
     margin-bottom: 16px;
 }
 
+.chart-card {
+    margin-top: 16px;
+}
+
 .form-grid {
     display: flex;
     flex-direction: column;

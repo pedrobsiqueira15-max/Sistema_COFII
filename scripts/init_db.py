@@ -13,6 +13,7 @@ DEFAULT_SEGMENTS = [
     "Residencial",
     "Hibrido",
     "Fundo de Fundos",
+    "Renda Urbana",
     "Outros",
 ]
 
