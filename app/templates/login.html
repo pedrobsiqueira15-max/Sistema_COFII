@@ -27,9 +27,11 @@
             </label>
             <button type="submit">Entrar</button>
         </form>
+        {% if can_register %}
         <p class="muted">
             Nao tem conta? <a href="{{ url_for('auth.register') }}">Cadastre-se</a>
         </p>
+        {% endif %}
     </main>
 </body>
 </html>

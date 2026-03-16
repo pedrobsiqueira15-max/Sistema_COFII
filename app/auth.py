@@ -1,3 +1,5 @@
+import os
+
 from flask import Blueprint, redirect, render_template, request, url_for, flash
 from flask_login import login_user, logout_user
 
@@ -5,6 +7,12 @@ from app.models import User
 from app.extensions import db
 
 auth_bp = Blueprint("auth", __name__)
+
+def _registration_allowed() -> bool:
+    allow_public = os.environ.get("ALLOW_PUBLIC_REGISTER", "").lower() in {"1", "true", "yes"}
+    if allow_public:
+        return True
+    return User.query.count() == 0
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -18,11 +26,14 @@ def login():
         else:
             login_user(user)
             return redirect(url_for("views.dashboard"))
-    return render_template("login.html")
+    return render_template("login.html", can_register=_registration_allowed())
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
+    if not _registration_allowed():
+        flash("Cadastro publico desativado. Contate o admin.", "error")
+        return redirect(url_for("auth.login"))
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
