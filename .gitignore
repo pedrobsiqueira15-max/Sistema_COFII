@@ -17,3 +17,4 @@ instance/
 *.swp
 .idea/
 .vscode/
+Senha supabase.txt
