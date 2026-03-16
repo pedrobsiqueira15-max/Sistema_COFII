@@ -1,8 +1,14 @@
 from datetime import date, datetime
 
-from passlib.hash import bcrypt
+from passlib.context import CryptContext
 
 from app.extensions import db, login_manager
+
+
+password_context = CryptContext(
+    schemes=["argon2", "bcrypt"],
+    deprecated="auto",
+)
 
 
 class User(db.Model):
@@ -16,12 +22,10 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     def set_password(self, password: str) -> None:
-        if len(password.encode("utf-8")) > 72:
-            raise ValueError("Senha muito longa. Limite: 72 bytes.")
-        self.password_hash = bcrypt.hash(password)
+        self.password_hash = password_context.hash(password)
 
     def check_password(self, password: str) -> bool:
-        return bcrypt.verify(password, self.password_hash)
+        return password_context.verify(password, self.password_hash)
 
     def get_id(self):  # Flask-Login
         return str(self.id)
