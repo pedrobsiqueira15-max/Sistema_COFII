@@ -8,8 +8,8 @@ class Config:
     database_url = os.environ.get(
         "DATABASE_URL", f"sqlite:///{os.path.join(BASE_DIR, 'data', 'cofii.db')}"
     )
-    # Converter postgresql:// para postgresql+psycopg2:// se necessário
+    # Converter postgresql:// para postgresql+pg8000:// se necessário
     if database_url.startswith("postgresql://"):
-        database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+        database_url = database_url.replace("postgresql://", "postgresql+pg8000://", 1)
     SQLALCHEMY_DATABASE_URI = database_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
