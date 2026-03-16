@@ -49,21 +49,27 @@ def seed_admin_user():
 
 def main():
     import sys
-    app = create_app()
-    with app.app_context():
-        try:
-            print("Criando tabelas...")
-            db.create_all()
-            print("Tabelas criadas com sucesso.")
-            seed_segments()
-            print("Segmentos inicializados.")
-            seed_admin_user()
-            print("Inicializacao concluida.")
-        except Exception as e:
-            print(f"ERRO ao inicializar banco: {e}", file=sys.stderr)
-            import traceback
-            traceback.print_exc()
-            sys.exit(1)
+    try:
+        app = create_app()
+        with app.app_context():
+            try:
+                print("Criando tabelas...")
+                db.create_all()
+                print("Tabelas criadas com sucesso.")
+                seed_segments()
+                print("Segmentos inicializados.")
+                seed_admin_user()
+                print("Inicializacao concluida.")
+            except Exception as e:
+                print(f"AVISO: Erro ao inicializar banco (continuando mesmo assim): {e}", file=sys.stderr)
+                import traceback
+                traceback.print_exc()
+                # Não fazer exit(1) - deixar o servidor subir mesmo se houver erro
+    except Exception as e:
+        print(f"ERRO CRITICO ao criar app: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 
 if __name__ == "__main__":
