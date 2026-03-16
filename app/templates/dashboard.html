@@ -64,6 +64,15 @@
     <h2>Minha opiniao de alocacao</h2>
     <p>Preencha os pesos por segmento (total 100%).</p>
     <form method="post" class="form-grid">
+        <label>Analista
+            <select name="user_id" required>
+                {% for user in users %}
+                <option value="{{ user.id }}" {% if user.id == selected_user_id %}selected{% endif %}>
+                    {{ user.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </label>
         {% for segment in segments %}
         <label>{{ segment.name }}
             <input type="number" step="0.01" min="0" max="100" name="segment_{{ segment.id }}" required />
