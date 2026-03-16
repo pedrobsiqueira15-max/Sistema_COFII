@@ -84,9 +84,6 @@
         {% endfor %}
         <button type="submit">Salvar</button>
     </form>
-</section>
-{% endblock %}
-
 {% if current_date %}
 <script>
     const allocationLabels = {{ current_alloc.keys()|list|tojson }};
@@ -116,3 +113,5 @@
     }
 </script>
 {% endif %}
+</section>
+{% endblock %}
