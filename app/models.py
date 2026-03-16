@@ -16,6 +16,8 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     def set_password(self, password: str) -> None:
+        if len(password.encode("utf-8")) > 72:
+            raise ValueError("Senha muito longa. Limite: 72 bytes.")
         self.password_hash = bcrypt.hash(password)
 
     def check_password(self, password: str) -> bool:

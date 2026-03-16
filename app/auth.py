@@ -45,7 +45,11 @@ def register():
             flash("Email ja cadastrado.", "error")
             return render_template("register.html")
         user = User(email=email, name=name)
-        user.set_password(password)
+        try:
+            user.set_password(password)
+        except ValueError as exc:
+            flash(str(exc), "error")
+            return render_template("register.html")
         db.session.add(user)
         db.session.commit()
         flash("Cadastro realizado. Faça login.", "success")
