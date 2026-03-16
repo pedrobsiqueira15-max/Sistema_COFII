@@ -2,6 +2,7 @@ Flask==3.0.2
 Flask-Login==0.6.3
 Flask-SQLAlchemy==3.0.1
 SQLAlchemy==1.4.23
+psycopg2-binary==2.9.9
 passlib[bcrypt,argon2]==1.7.4
 python-dateutil==2.9.0.post0
 gunicorn==21.2.0

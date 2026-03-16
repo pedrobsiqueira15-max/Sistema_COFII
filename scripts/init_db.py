@@ -44,11 +44,22 @@ def seed_admin_user():
 
 
 def main():
+    import sys
     app = create_app()
     with app.app_context():
-        db.create_all()
-        seed_segments()
-        seed_admin_user()
+        try:
+            print("Criando tabelas...")
+            db.create_all()
+            print("Tabelas criadas com sucesso.")
+            seed_segments()
+            print("Segmentos inicializados.")
+            seed_admin_user()
+            print("Inicializacao concluida.")
+        except Exception as e:
+            print(f"ERRO ao inicializar banco: {e}", file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
 
 
 if __name__ == "__main__":
