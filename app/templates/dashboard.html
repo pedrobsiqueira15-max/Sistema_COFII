@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Dashboard</h1>
+
+<section class="grid">
+    <div class="card">
+        <h2>Carteira atual</h2>
+        {% if portfolio_date %}
+            <p>Referencia: {{ portfolio_date }}</p>
+            <ul>
+                {% for name, weight in portfolio_alloc.items() %}
+                <li>{{ name }}: {{ weight }}%</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Sem dados da carteira.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>IFIX por segmento</h2>
+        {% if benchmark_date %}
+            <p>Referencia: {{ benchmark_date }}</p>
+            <ul>
+                {% for name, weight in benchmark_alloc.items() %}
+                <li>{{ name }}: {{ weight }}%</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Sem dados do IFIX.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>Indicadores ponderados</h2>
+        {% if metrics_date %}
+            <p>Referencia: {{ metrics_date }}</p>
+            <ul>
+                {% for key, value in metrics.items() %}
+                <li>{{ key }}: {{ value }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Sem indicadores calculados.</p>
+        {% endif %}
+    </div>
+</section>
+
+<section class="card">
+    <h2>Alocacao media da equipe</h2>
+    {% if current_date %}
+        <p>Referencia: {{ current_date }}</p>
+        <ul>
+            {% for name, weight in current_alloc.items() %}
+            <li>{{ name }}: {{ weight }}%</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Sem alocacoes registradas ainda.</p>
+    {% endif %}
+</section>
+
+<section class="card">
+    <h2>Minha opiniao de alocacao</h2>
+    <p>Preencha os pesos por segmento (total 100%).</p>
+    <form method="post" class="form-grid">
+        {% for segment in segments %}
+        <label>{{ segment.name }}
+            <input type="number" step="0.01" min="0" max="100" name="segment_{{ segment.id }}" required />
+        </label>
+        {% endfor %}
+        <button type="submit">Salvar</button>
+    </form>
+</section>
+{% endblock %}

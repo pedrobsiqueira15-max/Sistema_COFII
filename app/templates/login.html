@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - COFII</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+</head>
+<body>
+    <main class="container narrow">
+        <h1>Login</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="alerts">
+            {% for category, message in messages %}
+            <div class="alert {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+        <form method="post" class="card">
+            <label>Email
+                <input type="email" name="email" required />
+            </label>
+            <label>Senha
+                <input type="password" name="password" required />
+            </label>
+            <button type="submit">Entrar</button>
+        </form>
+        <p class="muted">
+            Nao tem conta? <a href="{{ url_for('auth.register') }}">Cadastre-se</a>
+        </p>
+    </main>
+</body>
+</html>

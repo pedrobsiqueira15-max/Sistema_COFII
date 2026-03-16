@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Cadastros de usuarios</h1>
+
+{% if users %}
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Email</th>
+                    <th>Ativo</th>
+                    <th>Data de cadastro</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ "Sim" if user.is_active else "Nao" }}</td>
+                    <td>{{ user.created_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <p>Nenhum usuario cadastrado ainda.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Historico de alocacoes</h1>
+
+{% if history_items %}
+    {% for meeting_date, allocation in history_items %}
+    <div class="card">
+        <h2>{{ meeting_date }}</h2>
+        <ul>
+            {% for name, weight in allocation.items() %}
+            <li>{{ name }}: {{ weight }}%</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+{% else %}
+    <p>Nenhuma alocacao registrada ainda.</p>
+{% endif %}
+{% endblock %}

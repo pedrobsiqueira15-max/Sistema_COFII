@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: sistema-cofii
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn run:app
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
