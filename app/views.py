@@ -1,7 +1,7 @@
 from datetime import date
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
-from flask_login import current_user, login_required
+from flask_login import current_user
 
 from app.extensions import db
 from app.models import Segment
@@ -24,7 +24,6 @@ def index():
 
 
 @views_bp.route("/dashboard", methods=["GET", "POST"])
-@login_required
 def dashboard():
     segments = Segment.query.order_by(Segment.name.asc()).all()
     if request.method == "POST":
@@ -63,14 +62,12 @@ def dashboard():
 
 
 @views_bp.route("/history")
-@login_required
 def history():
     history_items = get_allocation_history()
     return render_template("history.html", history_items=history_items)
 
 
 @views_bp.route("/users")
-@login_required
 def users():
     users_list = User.query.order_by(User.created_at.desc()).all()
     return render_template("users.html", users=users_list)
