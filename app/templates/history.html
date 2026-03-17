@@ -1,11 +1,67 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Historico de alocacoes</h1>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-{% if history_items %}
-    {% for meeting_date, allocation in history_items %}
+<section class="card">
+    <h2>Linha do tempo (consolidado)</h2>
+    {% if timeline_dates %}
+        <canvas id="timelineChart"></canvas>
+    {% else %}
+        <p>Nenhuma alocacao registrada ainda.</p>
+    {% endif %}
+</section>
+
+<section class="card">
+    <h2>Ver historico por analista</h2>
+    <form method="get" class="form-grid">
+        <label>Analista
+            <select name="user_id">
+                <option value="">(Selecione)</option>
+                {% for user in users %}
+                <option value="{{ user.id }}" {% if user.id == selected_user_id %}selected{% endif %}>
+                    {{ user.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit">Ver</button>
+    </form>
+
+    {% if analyst_history %}
+        <div class="chart-card">
+            <h3>Linha do tempo (analista selecionado)</h3>
+            {% if analyst_timeline_dates %}
+                <canvas id="timelineChartAnalyst"></canvas>
+            {% endif %}
+        </div>
+    {% endif %}
+</section>
+
+<section class="card">
+    <h2>Historico consolidado (media da equipe)</h2>
+    {% if consolidated_history %}
+        {% for meeting_date, allocation in consolidated_history %}
+        <div class="card">
+            <h3>{{ meeting_date }}</h3>
+            <ul>
+                {% for name, weight in allocation.items() %}
+                <li>{{ name }}: {{ weight }}%</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>Nenhuma alocacao registrada ainda.</p>
+    {% endif %}
+</section>
+
+{% if analyst_history %}
+<section class="card">
+    <h2>Historico do analista</h2>
+    {% for meeting_date, allocation in analyst_history %}
     <div class="card">
-        <h2>{{ meeting_date }}</h2>
+        <h3>{{ meeting_date }}</h3>
         <ul>
             {% for name, weight in allocation.items() %}
             <li>{{ name }}: {{ weight }}%</li>
@@ -13,7 +69,61 @@
         </ul>
     </div>
     {% endfor %}
-{% else %}
-    <p>Nenhuma alocacao registrada ainda.</p>
+</section>
 {% endif %}
+
+{% if timeline_dates %}
+<script>
+    const timelineLabels = {{ timeline_dates|map('string')|list|tojson }};
+    const timelineSeries = {{ timeline_series|tojson }};
+    const segmentNames = {{ timeline_segment_names|tojson }};
+
+    const palette = [
+        "#2e6bff","#ff7a00","#2fbf71","#9b59b6","#e74c3c",
+        "#16a085","#f1c40f","#34495e","#7f8c8d","#d35400"
+    ];
+    const datasets = segmentNames.map((name, idx) => ({
+        label: name,
+        data: timelineSeries[name] || [],
+        borderColor: palette[idx % palette.length],
+        backgroundColor: palette[idx % palette.length],
+        tension: 0.2,
+        fill: false,
+        pointRadius: 2,
+    }));
+
+    new Chart(document.getElementById("timelineChart"), {
+        type: "line",
+        data: { labels: timelineLabels, datasets },
+        options: {
+            responsive: true,
+            scales: {
+                y: { min: 0, max: 100 }
+            }
+        }
+    });
+</script>
+{% endif %}
+
+{% if analyst_timeline_dates %}
+<script>
+    const analystTimelineLabels = {{ analyst_timeline_dates|map('string')|list|tojson }};
+    const analystTimelineSeries = {{ analyst_timeline_series|tojson }};
+    const analystDatasets = segmentNames.map((name, idx) => ({
+        label: name,
+        data: analystTimelineSeries[name] || [],
+        borderColor: palette[idx % palette.length],
+        backgroundColor: palette[idx % palette.length],
+        tension: 0.2,
+        fill: false,
+        pointRadius: 2,
+    }));
+    new Chart(document.getElementById("timelineChartAnalyst"), {
+        type: "line",
+        data: { labels: analystTimelineLabels, datasets: analystDatasets },
+        options: { responsive: true, scales: { y: { min: 0, max: 100 } } }
+    });
+</script>
+{% endif %}
+
 {% endblock %}

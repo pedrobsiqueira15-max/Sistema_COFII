@@ -8,7 +8,10 @@ from app.models import Segment
 from app.models import User
 from app.services import (
     get_allocation_history,
+    get_analyst_allocation_history,
     get_current_allocation,
+    get_avg_allocation_timeseries,
+    get_analyst_allocation_timeseries,
     get_latest_benchmark_weights,
     get_latest_portfolio_segment_weights,
     get_latest_portfolio_metrics,
@@ -77,8 +80,32 @@ def dashboard():
 
 @views_bp.route("/history")
 def history():
-    history_items = get_allocation_history()
-    return render_template("history.html", history_items=history_items)
+    users = User.query.order_by(User.name.asc()).all()
+    selected_user_id = request.args.get("user_id")
+    selected_user_id_int = int(selected_user_id) if selected_user_id else None
+
+    consolidated_history = get_allocation_history()
+    analyst_history = (
+        get_analyst_allocation_history(selected_user_id_int) if selected_user_id_int else []
+    )
+
+    dates, segment_names, series = get_avg_allocation_timeseries()
+    analyst_dates, _, analyst_series = (
+        get_analyst_allocation_timeseries(selected_user_id_int) if selected_user_id_int else ([], [], {})
+    )
+
+    return render_template(
+        "history.html",
+        users=users,
+        selected_user_id=selected_user_id_int,
+        consolidated_history=consolidated_history,
+        analyst_history=analyst_history,
+        timeline_dates=dates,
+        timeline_segment_names=segment_names,
+        timeline_series=series,
+        analyst_timeline_dates=analyst_dates,
+        analyst_timeline_series=analyst_series,
+    )
 
 
 @views_bp.route("/users")

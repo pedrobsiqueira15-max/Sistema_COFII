@@ -91,6 +91,76 @@ def get_allocation_history():
     return history
 
 
+def get_analyst_allocation_for_date(user_id: int, meeting_date: date):
+    rows = (
+        db.session.query(Segment.name, AnalystWeight.weight)
+        .join(AnalystWeight, AnalystWeight.segment_id == Segment.id)
+        .filter(AnalystWeight.meeting_date == meeting_date, AnalystWeight.user_id == user_id)
+        .all()
+    )
+    return {name: round(weight or 0, 2) for name, weight in rows}
+
+
+def get_analyst_allocation_history(user_id: int):
+    dates = (
+        db.session.query(AnalystWeight.meeting_date)
+        .filter(AnalystWeight.user_id == user_id)
+        .distinct()
+        .order_by(AnalystWeight.meeting_date.desc())
+        .all()
+    )
+    history = []
+    for (meeting_date,) in dates:
+        history.append((meeting_date, get_analyst_allocation_for_date(user_id, meeting_date)))
+    return history
+
+
+def get_avg_allocation_timeseries():
+    """Retorna (dates_asc, segment_names_asc, series_by_segment_name)."""
+    dates = (
+        db.session.query(AnalystWeight.meeting_date)
+        .distinct()
+        .order_by(AnalystWeight.meeting_date.asc())
+        .all()
+    )
+    if not dates:
+        return [], [], {}
+    date_list = [d for (d,) in dates]
+    segments = Segment.query.order_by(Segment.name.asc()).all()
+    segment_names = [s.name for s in segments]
+
+    # Inicializar com zeros
+    series = {name: [0.0 for _ in date_list] for name in segment_names}
+    for idx, d in enumerate(date_list):
+        alloc = get_avg_allocation_for_date(d)
+        for name in segment_names:
+            if name in alloc:
+                series[name][idx] = float(alloc[name])
+    return date_list, segment_names, series
+
+
+def get_analyst_allocation_timeseries(user_id: int):
+    dates = (
+        db.session.query(AnalystWeight.meeting_date)
+        .filter(AnalystWeight.user_id == user_id)
+        .distinct()
+        .order_by(AnalystWeight.meeting_date.asc())
+        .all()
+    )
+    if not dates:
+        return [], [], {}
+    date_list = [d for (d,) in dates]
+    segments = Segment.query.order_by(Segment.name.asc()).all()
+    segment_names = [s.name for s in segments]
+    series = {name: [0.0 for _ in date_list] for name in segment_names}
+    for idx, d in enumerate(date_list):
+        alloc = get_analyst_allocation_for_date(user_id, d)
+        for name in segment_names:
+            if name in alloc:
+                series[name][idx] = float(alloc[name])
+    return date_list, segment_names, series
+
+
 def _get_latest_holdings_date() -> date | None:
     return db.session.query(func.max(PortfolioFund.as_of_date)).scalar()
 

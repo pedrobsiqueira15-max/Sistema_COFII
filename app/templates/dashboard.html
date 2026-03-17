@@ -68,6 +68,10 @@
     <h2>Minha opiniao de alocacao</h2>
     <p>Preencha os pesos por segmento (total 100%).</p>
     <form method="post" class="form-grid">
+        <div class="sum-box" id="sumBox">
+            <div><strong>Soma:</strong> <span id="sumValue">0.00</span>%</div>
+            <div><strong>Diferenca p/ 100%:</strong> <span id="sumDiff">100.00</span>%</div>
+        </div>
         <label>Analista
             <select name="user_id" required>
                 {% for user in users %}
@@ -79,7 +83,7 @@
         </label>
         {% for segment in segments %}
         <label>{{ segment.name }}
-            <input type="number" step="0.01" min="0" max="100" name="segment_{{ segment.id }}" required />
+            <input class="weight-input" type="number" step="0.01" min="0" max="100" name="segment_{{ segment.id }}" required />
         </label>
         {% endfor %}
         <button type="submit">Salvar</button>
@@ -113,5 +117,37 @@
     }
 </script>
 {% endif %}
+<script>
+    function parseFloatSafe(v) {
+        if (!v) return 0;
+        const n = parseFloat(String(v).replace(",", "."));
+        return Number.isFinite(n) ? n : 0;
+    }
+    function updateSum() {
+        const inputs = document.querySelectorAll(".weight-input");
+        let sum = 0;
+        inputs.forEach((el) => { sum += parseFloatSafe(el.value); });
+        sum = Math.round(sum * 100) / 100;
+        const diff = Math.round((100 - sum) * 100) / 100;
+
+        const sumValue = document.getElementById("sumValue");
+        const sumDiff = document.getElementById("sumDiff");
+        const sumBox = document.getElementById("sumBox");
+        if (sumValue) sumValue.textContent = sum.toFixed(2);
+        if (sumDiff) sumDiff.textContent = diff.toFixed(2);
+        if (sumBox) {
+            sumBox.classList.remove("ok", "warn", "over");
+            if (Math.abs(diff) <= 0.01) sumBox.classList.add("ok");
+            else if (diff > 0) sumBox.classList.add("warn");
+            else sumBox.classList.add("over");
+        }
+    }
+    document.addEventListener("input", (e) => {
+        if (e.target && e.target.classList && e.target.classList.contains("weight-input")) {
+            updateSum();
+        }
+    });
+    document.addEventListener("DOMContentLoaded", updateSum);
+</script>
 </section>
 {% endblock %}
