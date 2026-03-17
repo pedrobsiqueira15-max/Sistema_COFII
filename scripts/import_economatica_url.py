@@ -3,6 +3,7 @@ import os
 import re
 import sys
 from datetime import date, datetime
+from typing import Optional
 from urllib.request import urlopen
 
 # Adicionar o diretório raiz ao PYTHONPATH
@@ -40,7 +41,7 @@ MONTH_MAP = {
 }
 
 
-def parse_date_from_header(header: str) -> date | None:
+def parse_date_from_header(header: str) -> Optional[date]:
     if not header:
         return None
     match = DATE_PATTERN.search(header)
@@ -56,21 +57,35 @@ def parse_date_from_header(header: str) -> date | None:
     return None
 
 
-def to_float(value: str | None):
+def to_float(value: Optional[str]):
     if value is None:
         return None
-    value = value.strip().replace(".", "").replace(",", ".")
+    value = value.strip()
     if value in {"", "-", "NA"}:
         return None
+    # Tentar converter diretamente (formato com ponto decimal)
     try:
         return float(value)
     except ValueError:
-        return None
+        # Se falhar, tentar formato brasileiro (vírgula como separador decimal)
+        try:
+            value_br = value.replace(".", "").replace(",", ".")
+            return float(value_br)
+        except ValueError:
+            return None
 
 
 def download_csv(url: str) -> str:
     with urlopen(url) as response:
-        return response.read().decode("utf-8-sig")
+        data = response.read()
+        # Tentar diferentes codificações
+        for encoding in ["utf-8-sig", "latin-1", "cp1252", "iso-8859-1"]:
+            try:
+                return data.decode(encoding)
+            except UnicodeDecodeError:
+                continue
+        # Se nenhuma funcionar, usar latin-1 como fallback
+        return data.decode("latin-1", errors="ignore")
 
 
 def import_from_url(url: str):
@@ -144,7 +159,7 @@ def import_from_url(url: str):
             # Importar composição do IFIX se disponível
             if ifix_header:
                 ifix_weight = to_float(row.get(ifix_header))
-                if ifix_weight is not None and ifix_weight > 0:
+                if ifix_weight is not None and ifix_weight >= 0:  # Permitir 0 também
                     existing_ifix = IFIXComposition.query.filter_by(
                         fund_code=fund_code, as_of_date=as_of
                     ).first()
