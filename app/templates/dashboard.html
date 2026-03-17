@@ -20,15 +20,20 @@
 
     <div class="card">
         <h2>IFIX por segmento (do datafeed)</h2>
-        {% if ifix_date %}
+        {% if ifix_date and ifix_alloc %}
             <p>Referencia: {{ ifix_date }}</p>
-            <ul>
-                {% for name, weight in ifix_alloc.items() %}
-                <li>{{ name }}: {{ weight }}%</li>
-                {% endfor %}
-            </ul>
+            {% if ifix_alloc|length > 0 %}
+                <ul>
+                    {% for name, weight in ifix_alloc.items() %}
+                    <li>{{ name }}: {{ weight }}%</li>
+                    {% endfor %}
+                </ul>
+                <p><small>Total: {{ ifix_alloc.values()|sum }}%</small></p>
+            {% else %}
+                <p>Sem dados de composição do IFIX.</p>
+            {% endif %}
         {% else %}
-            <p>Sem dados do IFIX do datafeed.</p>
+            <p>Sem dados do IFIX do datafeed. Importe o datafeed para ver a composição.</p>
         {% endif %}
     </div>
 
