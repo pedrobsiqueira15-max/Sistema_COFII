@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from app.main import create_app
 from app.extensions import db
-from app.models import Fund, FundMetric
+from app.models import Fund, FundMetric, IFIXComposition
 
 
 DATE_PATTERN = re.compile(r"\|(\d{1,2}[A-Za-z]{3}\d{2})\|")
@@ -85,6 +85,7 @@ def import_from_url(url: str):
     pvp_header = next((h for h in reader.fieldnames if h.startswith("P/VPA")), "")
     patrimonio_header = next((h for h in reader.fieldnames if h.startswith("Patrim Liq")), "")
     passivo_header = next((h for h in reader.fieldnames if h.startswith("PssvTt")), "")
+    ifix_header = next((h for h in reader.fieldnames if "Comp carteira" in h and "Ind Fdo Imob" in h), "")
 
     as_of = parse_date_from_header(dy_header) or parse_date_from_header(vol_header) or date.today()
 
@@ -139,6 +140,24 @@ def import_from_url(url: str):
                         p_vp=p_vp,
                     )
                 )
+            
+            # Importar composição do IFIX se disponível
+            if ifix_header:
+                ifix_weight = to_float(row.get(ifix_header))
+                if ifix_weight is not None and ifix_weight > 0:
+                    existing_ifix = IFIXComposition.query.filter_by(
+                        fund_code=fund_code, as_of_date=as_of
+                    ).first()
+                    if existing_ifix:
+                        existing_ifix.weight = ifix_weight
+                    else:
+                        db.session.add(
+                            IFIXComposition(
+                                fund_code=fund_code,
+                                as_of_date=as_of,
+                                weight=ifix_weight,
+                            )
+                        )
         db.session.commit()
 
 

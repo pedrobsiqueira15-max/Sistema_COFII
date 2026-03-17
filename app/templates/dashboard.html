@@ -19,7 +19,21 @@
     </div>
 
     <div class="card">
-        <h2>IFIX por segmento</h2>
+        <h2>IFIX por segmento (do datafeed)</h2>
+        {% if ifix_date %}
+            <p>Referencia: {{ ifix_date }}</p>
+            <ul>
+                {% for name, weight in ifix_alloc.items() %}
+                <li>{{ name }}: {{ weight }}%</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Sem dados do IFIX do datafeed.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>IFIX por segmento (manual)</h2>
         {% if benchmark_date %}
             <p>Referencia: {{ benchmark_date }}</p>
             <ul>
@@ -28,7 +42,7 @@
                 {% endfor %}
             </ul>
         {% else %}
-            <p>Sem dados do IFIX.</p>
+            <p>Sem dados do IFIX manual.</p>
         {% endif %}
     </div>
 
@@ -92,17 +106,43 @@
 <script>
     const allocationLabels = {{ current_alloc.keys()|list|tojson }};
     const allocationValues = {{ current_alloc.values()|list|tojson }};
+    
+    // Preparar dados do IFIX para o gráfico
+    const ifixLabels = {{ ifix_alloc.keys()|list|tojson if ifix_alloc else [] }};
+    const ifixValues = {{ ifix_alloc.values()|list|tojson if ifix_alloc else [] }};
+    
+    // Garantir que todos os segmentos estejam nas labels
+    const allLabels = [...new Set([...allocationLabels, ...ifixLabels])].sort();
+    
+    // Mapear valores para garantir ordem correta
+    const allocationMap = {{ current_alloc|tojson }};
+    const ifixMap = {{ ifix_alloc|tojson if ifix_alloc else {} }};
+    
+    const allocationData = allLabels.map(label => allocationMap[label] || 0);
+    const ifixData = allLabels.map(label => ifixMap[label] || 0);
+    
     const ctx = document.getElementById("allocationChart");
     if (ctx) {
+        const datasets = [{
+            label: "Alocacao media da equipe (%)",
+            data: allocationData,
+            backgroundColor: "#2e6bff"
+        }];
+        
+        // Adicionar IFIX se houver dados
+        if (ifixValues.length > 0) {
+            datasets.push({
+                label: "IFIX por segmento (%)",
+                data: ifixData,
+                backgroundColor: "#ff6b2e"
+            });
+        }
+        
         new Chart(ctx, {
             type: "bar",
             data: {
-                labels: allocationLabels,
-                datasets: [{
-                    label: "Alocacao por segmento (%)",
-                    data: allocationValues,
-                    backgroundColor: "#2e6bff"
-                }]
+                labels: allLabels,
+                datasets: datasets
             },
             options: {
                 responsive: true,

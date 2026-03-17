@@ -13,6 +13,7 @@ from app.services import (
     get_avg_allocation_timeseries,
     get_analyst_allocation_timeseries,
     get_latest_benchmark_weights,
+    get_latest_ifix_composition_by_segment,
     get_latest_portfolio_segment_weights,
     get_latest_portfolio_metrics,
     upsert_analyst_weights,
@@ -60,6 +61,7 @@ def dashboard():
     current_date, current_alloc = get_current_allocation()
     portfolio_date, portfolio_alloc = get_latest_portfolio_segment_weights()
     benchmark_date, benchmark_alloc = get_latest_benchmark_weights()
+    ifix_date, ifix_alloc = get_latest_ifix_composition_by_segment()
     metrics_date, metrics = get_latest_portfolio_metrics()
 
     return render_template(
@@ -73,6 +75,8 @@ def dashboard():
         portfolio_alloc=portfolio_alloc,
         benchmark_date=benchmark_date,
         benchmark_alloc=benchmark_alloc,
+        ifix_date=ifix_date,
+        ifix_alloc=ifix_alloc,
         metrics_date=metrics_date,
         metrics=metrics,
     )

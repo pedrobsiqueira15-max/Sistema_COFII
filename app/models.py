@@ -126,3 +126,17 @@ class PortfolioMetricHistory(db.Model):
     beta = db.Column(db.Float, nullable=True)
     p_vp = db.Column(db.Float, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class IFIXComposition(db.Model):
+    __tablename__ = "ifix_composition"
+
+    id = db.Column(db.Integer, primary_key=True)
+    fund_code = db.Column(db.String(40), nullable=False)
+    as_of_date = db.Column(db.Date, nullable=False)
+    weight = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint("fund_code", "as_of_date", name="uq_ifix_fund_date"),
+    )

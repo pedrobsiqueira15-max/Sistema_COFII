@@ -9,7 +9,9 @@ from app.extensions import db
 from app.models import (
     AnalystWeight,
     BenchmarkWeight,
+    Fund,
     FundMetric,
+    IFIXComposition,
     PortfolioFund,
     PortfolioMetricHistory,
     Segment,
@@ -274,3 +276,29 @@ def get_latest_portfolio_metrics():
             "p_vp": latest.p_vp,
         }
     return compute_portfolio_metrics()
+
+
+def get_latest_ifix_composition_by_segment():
+    """Calcula a composição do IFIX por segmento baseado nos FIIs e seus pesos no IFIX."""
+    latest_date = db.session.query(func.max(IFIXComposition.as_of_date)).scalar()
+    if not latest_date:
+        return None, {}
+    
+    # Buscar composição do IFIX por FII
+    ifix_composition = (
+        db.session.query(IFIXComposition.fund_code, IFIXComposition.weight)
+        .filter(IFIXComposition.as_of_date == latest_date)
+        .all()
+    )
+    
+    if not ifix_composition:
+        return latest_date, {}
+    
+    # Agrupar por segmento usando a base de FIIs
+    segment_weights = defaultdict(float)
+    for fund_code, weight in ifix_composition:
+        fund = Fund.query.filter_by(fund_code=fund_code).first()
+        if fund and fund.segment:
+            segment_weights[fund.segment.name] += weight
+    
+    return latest_date, {name: round(weight, 2) for name, weight in segment_weights.items()}
