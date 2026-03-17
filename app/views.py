@@ -3,7 +3,9 @@ from datetime import date
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
+from app.datafeed_import import import_datafeed_from_csv_text
 from app.extensions import db
+from app.funds_import import import_funds_from_excel_bytes
 from app.models import Segment
 from app.models import User
 from app.services import (
@@ -110,6 +112,67 @@ def history():
         analyst_timeline_dates=analyst_dates,
         analyst_timeline_series=analyst_series,
     )
+
+
+@views_bp.route("/upload-cadastrais", methods=["POST"])
+def upload_cadastrais():
+    """Recebe Excel Dados Cadastrais - FIIs (código, nome, setor) e vincula FII ao segmento."""
+    file = request.files.get("cadastrais_excel")
+    if not file or file.filename == "":
+        flash("Nenhum arquivo selecionado. Escolha o Excel Dados Cadastrais - FIIs.", "error")
+        return redirect(url_for("views.dashboard"))
+
+    if not (file.filename.lower().endswith(".xlsx") or file.filename.lower().endswith(".xls")):
+        flash("Envie um arquivo Excel (.xlsx ou .xls).", "error")
+        return redirect(url_for("views.dashboard"))
+
+    try:
+        excel_bytes = file.read()
+        created, updated, errors = import_funds_from_excel_bytes(excel_bytes)
+        msg = f"Cadastrais enviados: {created} FIIs criados, {updated} atualizados (vínculo com segmento)."
+        if errors:
+            msg += f" Avisos: {len(errors)}."
+        flash(msg, "success")
+    except Exception as e:
+        flash(f"Erro ao processar o Excel: {e}", "error")
+
+    return redirect(url_for("views.dashboard"))
+
+
+@views_bp.route("/upload-data", methods=["POST"])
+def upload_data():
+    """Recebe arquivo CSV do datafeed Economatica e grava no banco (Supabase)."""
+    file = request.files.get("datafeed_csv")
+    if not file or file.filename == "":
+        flash("Nenhum arquivo selecionado. Escolha um CSV do datafeed Economatica.", "error")
+        return redirect(url_for("views.dashboard"))
+
+    if not file.filename.lower().endswith(".csv"):
+        flash("Envie um arquivo CSV (datafeed Economatica).", "error")
+        return redirect(url_for("views.dashboard"))
+
+    try:
+        raw = file.read()
+        for encoding in ("utf-8-sig", "utf-8", "latin-1", "cp1252"):
+            try:
+                csv_text = raw.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+        else:
+            csv_text = raw.decode("latin-1", errors="ignore")
+
+        num_metrics, num_ifix = import_datafeed_from_csv_text(csv_text)
+        flash(
+            f"Dados enviados para o banco: {num_metrics} indicadores e {num_ifix} pesos do IFIX.",
+            "success",
+        )
+    except ValueError as e:
+        flash(str(e), "error")
+    except Exception as e:
+        flash(f"Erro ao processar o arquivo: {e}", "error")
+
+    return redirect(url_for("views.dashboard"))
 
 
 @views_bp.route("/users")

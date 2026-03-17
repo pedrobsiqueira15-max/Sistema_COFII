@@ -2,11 +2,20 @@ import os
 import sys
 
 # Adicionar o diretório raiz ao PYTHONPATH
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, _root)
+os.chdir(_root)
+
+# Carregar .env (DATABASE_URL para Supabase, etc.)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 from app.main import create_app
 from app.extensions import db
-from app.models import Segment, User
+from app.models import Segment, User, IFIXComposition
 
 
 DEFAULT_SEGMENTS = [
@@ -97,6 +106,16 @@ def main():
                 seed_default_analysts()
                 print("Analistas padrao criados (se necessario).")
                 seed_admin_user()
+                # Se ainda não há dados do IFIX/indicadores, importar do datafeed (Supabase/Render)
+                if IFIXComposition.query.count() == 0:
+                    print("Tabelas ifix/indicadores vazias. Importando datafeed Economatica...")
+                    try:
+                        sys.path.insert(0, os.path.join(_root, "scripts"))
+                        import import_economatica_url
+                        import_economatica_url.import_from_url(import_economatica_url.DEFAULT_DATAFEED_URL)
+                        print("Datafeed importado: ifix_composition e fund_metrics.")
+                    except Exception as e_import:
+                        print(f"AVISO: Falha ao importar datafeed (continuando): {e_import}", file=sys.stderr)
                 print("Inicializacao concluida.")
             except Exception as e:
                 print(f"AVISO: Erro ao inicializar banco (continuando mesmo assim): {e}", file=sys.stderr)

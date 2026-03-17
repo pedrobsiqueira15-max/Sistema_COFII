@@ -1,183 +1,55 @@
-import csv
 import os
-import re
 import sys
-from datetime import date, datetime
-from typing import Optional
 from urllib.request import urlopen
 
 # Adicionar o diretório raiz ao PYTHONPATH
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+_root = os.path.abspath(os.path.join(_script_dir, ".."))
+sys.path.insert(0, _root)
+os.chdir(_root)
+
+# Carregar .env para usar DATABASE_URL do Supabase quando rodar localmente
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 from app.main import create_app
-from app.extensions import db
-from app.models import Fund, FundMetric, IFIXComposition
-
-
-DATE_PATTERN = re.compile(r"\|(\d{1,2}[A-Za-z]{3}\d{2})\|")
-MONTH_YEAR_PATTERN = re.compile(r"\|([A-Za-z]{3}\d{2})\|")
-
-
-MONTH_MAP = {
-    "JAN": "Jan",
-    "FEV": "Feb",
-    "FEB": "Feb",
-    "MAR": "Mar",
-    "ABR": "Apr",
-    "APR": "Apr",
-    "MAI": "May",
-    "MAY": "May",
-    "JUN": "Jun",
-    "JUL": "Jul",
-    "AGO": "Aug",
-    "AUG": "Aug",
-    "SET": "Sep",
-    "SEP": "Sep",
-    "OUT": "Oct",
-    "OCT": "Oct",
-    "NOV": "Nov",
-    "DEZ": "Dec",
-    "DEC": "Dec",
-}
-
-
-def parse_date_from_header(header: str) -> Optional[date]:
-    if not header:
-        return None
-    match = DATE_PATTERN.search(header)
-    if match:
-        raw = match.group(1)
-        normalized = raw[:2] + MONTH_MAP.get(raw[2:5].upper(), raw[2:5]) + raw[5:]
-        return datetime.strptime(normalized, "%d%b%y").date()
-    match = MONTH_YEAR_PATTERN.search(header)
-    if match:
-        raw = match.group(1)
-        normalized = "01" + MONTH_MAP.get(raw[:3].upper(), raw[:3]) + raw[3:]
-        return datetime.strptime(normalized, "%d%b%y").date()
-    return None
-
-
-def to_float(value: Optional[str]):
-    if value is None:
-        return None
-    value = value.strip()
-    if value in {"", "-", "NA"}:
-        return None
-    # Tentar converter diretamente (formato com ponto decimal)
-    try:
-        return float(value)
-    except ValueError:
-        # Se falhar, tentar formato brasileiro (vírgula como separador decimal)
-        try:
-            value_br = value.replace(".", "").replace(",", ".")
-            return float(value_br)
-        except ValueError:
-            return None
+from app.datafeed_import import import_datafeed_from_csv_text
 
 
 def download_csv(url: str) -> str:
     with urlopen(url) as response:
         data = response.read()
-        # Tentar diferentes codificações
         for encoding in ["utf-8-sig", "latin-1", "cp1252", "iso-8859-1"]:
             try:
                 return data.decode(encoding)
             except UnicodeDecodeError:
                 continue
-        # Se nenhuma funcionar, usar latin-1 como fallback
         return data.decode("latin-1", errors="ignore")
 
 
 def import_from_url(url: str):
     csv_text = download_csv(url)
-    reader = csv.DictReader(csv_text.splitlines())
-    if not reader.fieldnames:
-        raise ValueError("CSV sem cabecalho.")
-
-    dy_header = next((h for h in reader.fieldnames if h.startswith("Div Yld")), "")
-    vol_header = next((h for h in reader.fieldnames if h.startswith("Volatilidade")), "")
-    beta_header = next((h for h in reader.fieldnames if h.startswith("Beta")), "")
-    pvp_header = next((h for h in reader.fieldnames if h.startswith("P/VPA")), "")
-    patrimonio_header = next((h for h in reader.fieldnames if h.startswith("Patrim Liq")), "")
-    passivo_header = next((h for h in reader.fieldnames if h.startswith("PssvTt")), "")
-    ifix_header = next((h for h in reader.fieldnames if "Comp carteira" in h and "Ind Fdo Imob" in h), "")
-
-    as_of = parse_date_from_header(dy_header) or parse_date_from_header(vol_header) or date.today()
-
     app = create_app()
     with app.app_context():
-        for row in reader:
-            fund_code = row.get("C�digo") or row.get("Código") or row.get("Codigo") or ""
-            fund_code = fund_code.strip().upper()
-            if not fund_code:
-                continue
-            
-            # Criar/atualizar Fund se necessário
-            fund_name = row.get("Nome", "").strip()
-            if fund_name:
-                fund = Fund.query.filter_by(fund_code=fund_code).first()
-                if not fund:
-                    fund = Fund(fund_code=fund_code, name=fund_name)
-                    db.session.add(fund)
-                elif fund.name != fund_name:
-                    fund.name = fund_name
-                    fund.updated_at = datetime.utcnow()
+        num_metrics, num_ifix = import_datafeed_from_csv_text(csv_text)
+        print(f"Importacao concluida: {num_metrics} indicadores e {num_ifix} pesos do IFIX.")
 
-            dy_12m = to_float(row.get(dy_header))
-            volatility = to_float(row.get(vol_header))
-            beta = to_float(row.get(beta_header))
-            p_vp = to_float(row.get(pvp_header))
 
-            patrimonio = to_float(row.get(patrimonio_header))
-            passivo = to_float(row.get(passivo_header))
-            leverage = None
-            if patrimonio and passivo and patrimonio != 0:
-                leverage = passivo / patrimonio
-
-            existing = FundMetric.query.filter_by(
-                fund_code=fund_code, as_of_date=as_of
-            ).first()
-            if existing:
-                existing.dy_12m = dy_12m
-                existing.volatility = volatility
-                existing.leverage = leverage
-                existing.beta = beta
-                existing.p_vp = p_vp
-            else:
-                db.session.add(
-                    FundMetric(
-                        fund_code=fund_code,
-                        as_of_date=as_of,
-                        dy_12m=dy_12m,
-                        volatility=volatility,
-                        leverage=leverage,
-                        beta=beta,
-                        p_vp=p_vp,
-                    )
-                )
-            
-            # Importar composição do IFIX se disponível
-            if ifix_header:
-                ifix_weight = to_float(row.get(ifix_header))
-                if ifix_weight is not None and ifix_weight >= 0:  # Permitir 0 também
-                    existing_ifix = IFIXComposition.query.filter_by(
-                        fund_code=fund_code, as_of_date=as_of
-                    ).first()
-                    if existing_ifix:
-                        existing_ifix.weight = ifix_weight
-                    else:
-                        db.session.add(
-                            IFIXComposition(
-                                fund_code=fund_code,
-                                as_of_date=as_of,
-                                weight=ifix_weight,
-                            )
-                        )
-        db.session.commit()
+# URL padrão do datafeed Economatica (pode ser sobrescrita por env ou argumento)
+DEFAULT_DATAFEED_URL = os.environ.get(
+    "ECONOMATICA_DATAFEED_URL",
+    "https://api.data.economatica.com/1/oficial/datafeed/download/1/H04%2FhWKn20%2BrhndJzZtKV%2B8%2FKw1zSj201wQHRs49PdRLLXEDtbW83Ugikb8wcORvGQWg7Q6Ea4i1jk45x1yv0fntvpM8ssb46OfYv5Me1fU8K8dlEBUoUNmgEDdeXBORiYM%2B3rkmFc0NETTNyryAtXvppc0FdSsiyG%2FQbIsDEsBEJitCPD01VdQFDCDO06LG031HAntWtqwrk9FIkhBEj0%2BFPSZkXdIQBrDCNbTe%2BYm1abwYZIBh2%2BrNe4HKxSoUmO4pcwqcj384PE%2B%2BSjAnFnCVPnWnB6iC7s5E8lhRNWyVZGygi9q7mKrsqGQVZkoemlmCGiTvZ13hHMciTUphXw%3D%3D",
+)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Uso: python scripts/import_economatica_url.py <url>")
+    url = sys.argv[1] if len(sys.argv) >= 2 else DEFAULT_DATAFEED_URL
+    if not url or url.strip() == "":
+        print("Uso: python scripts/import_economatica_url.py [url]")
+        print("  ou defina ECONOMATICA_DATAFEED_URL no ambiente.")
         sys.exit(1)
-    import_from_url(sys.argv[1])
+    print(f"Importando de: {url[:80]}...")
+    import_from_url(url.strip())

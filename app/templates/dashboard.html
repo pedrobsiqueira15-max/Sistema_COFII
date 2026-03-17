@@ -3,6 +3,42 @@
 <h1>Dashboard</h1>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<section class="card upload-card">
+    <h2>Enviar dados para o banco (Supabase)</h2>
+    <p class="upload-desc">O sistema calcula automaticamente a soma dos pesos por segmento e vincula cada FII ao segmento. Para isso, envie na ordem:</p>
+    <ol class="upload-steps">
+        <li><strong>Dados Cadastrais (Excel)</strong> — código, nome e setor de cada FII. Assim o “IFIX por segmento” fecha (pesos somados por segmento).</li>
+        <li><strong>Datafeed Economatica (CSV)</strong> — indicadores e peso de cada FII no IFIX. Os pesos são agregados por segmento usando o cadastro acima.</li>
+    </ol>
+
+    <div class="upload-forms">
+        <div class="upload-block">
+            <h3>1. Dados Cadastrais – FIIs (Excel)</h3>
+            <p class="upload-hint">Colunas: codigo_negociacao (ou ticker), nome_pregao (ou nome_capitania), setor</p>
+            <form action="{{ url_for('views.upload_cadastrais') }}" method="post" enctype="multipart/form-data" class="upload-form">
+                <label class="file-label">
+                    <span class="file-button">Escolher Excel</span>
+                    <input type="file" name="cadastrais_excel" accept=".xlsx,.xls" required class="file-input" data-filename="fileNameCadastrais" />
+                    <span class="file-name" id="fileNameCadastrais">Nenhum arquivo</span>
+                </label>
+                <button type="submit" class="btn-upload">Enviar cadastrais</button>
+            </form>
+        </div>
+        <div class="upload-block">
+            <h3>2. Datafeed Economatica (CSV)</h3>
+            <p class="upload-hint">Indicadores e composição do IFIX por FII</p>
+            <form action="{{ url_for('views.upload_data') }}" method="post" enctype="multipart/form-data" class="upload-form">
+                <label class="file-label">
+                    <span class="file-button">Escolher CSV</span>
+                    <input type="file" name="datafeed_csv" accept=".csv" required class="file-input" data-filename="fileNameDatafeed" />
+                    <span class="file-name" id="fileNameDatafeed">Nenhum arquivo</span>
+                </label>
+                <button type="submit" class="btn-upload">Enviar datafeed</button>
+            </form>
+        </div>
+    </div>
+</section>
+
 <section class="grid">
     <div class="card">
         <h2>Carteira atual</h2>
@@ -193,6 +229,17 @@
         }
     });
     document.addEventListener("DOMContentLoaded", updateSum);
+
+    // Mostrar nome do arquivo selecionado nos uploads
+    document.querySelectorAll(".file-input").forEach(function(input) {
+        const id = input.getAttribute("data-filename");
+        const fileNameEl = id ? document.getElementById(id) : null;
+        if (fileNameEl) {
+            input.addEventListener("change", function() {
+                fileNameEl.textContent = this.files.length ? this.files[0].name : "Nenhum arquivo";
+            });
+        }
+    });
 </script>
 </section>
 {% endblock %}

@@ -47,10 +47,11 @@ Importe indicadores por fundo:
 python scripts\import_economatica.py data\economatica.csv
 ```
 
-Importe direto do link do datafeed (CSV diario):
+Importe direto do link do datafeed (CSV diario) — **preenche indicadores e composição do IFIX**:
 ```bash
-python scripts\import_economatica_url.py "URL_DO_DATAFEED"
+python scripts\import_economatica_url.py
 ```
+(Sem argumentos usa a URL padrão; ou passe a URL como argumento. Para Supabase, defina `DATABASE_URL` antes de rodar.)
 
 Importe composicao da carteira:
 ```bash
