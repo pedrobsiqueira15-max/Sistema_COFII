@@ -95,6 +95,17 @@ def import_from_url(url: str):
             fund_code = fund_code.strip().upper()
             if not fund_code:
                 continue
+            
+            # Criar/atualizar Fund se necessário
+            fund_name = row.get("Nome", "").strip()
+            if fund_name:
+                fund = Fund.query.filter_by(fund_code=fund_code).first()
+                if not fund:
+                    fund = Fund(fund_code=fund_code, name=fund_name)
+                    db.session.add(fund)
+                elif fund.name != fund_name:
+                    fund.name = fund_name
+                    fund.updated_at = datetime.utcnow()
 
             dy_12m = to_float(row.get(dy_header))
             volatility = to_float(row.get(vol_header))
