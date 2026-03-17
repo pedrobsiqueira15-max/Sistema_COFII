@@ -44,6 +44,19 @@ class Segment(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 
+class Fund(db.Model):
+    __tablename__ = "funds"
+
+    id = db.Column(db.Integer, primary_key=True)
+    fund_code = db.Column(db.String(40), unique=True, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    segment_id = db.Column(db.Integer, db.ForeignKey("segments.id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    segment = db.relationship("Segment", backref="funds")
+
+
 class AnalystWeight(db.Model):
     __tablename__ = "analyst_weights"
 

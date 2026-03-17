@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from app.main import create_app
 from app.extensions import db
-from app.models import FundMetric
+from app.models import Fund, FundMetric
 
 
 DATE_PATTERN = re.compile(r"\|(\d{1,2}[A-Za-z]{3}\d{2})\|")
